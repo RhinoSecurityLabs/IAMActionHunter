@@ -42,9 +42,7 @@ def process_cli_args():
     group.add_argument(
         "--collect", help="Collect user and role policies for the account.", action="store_true", default=False
     )
-    group.add_argument(
-        "--list", help="List accounts available to query.", action="store_true", default=False
-    )
+    group.add_argument("--list", help="List accounts available to query.", action="store_true", default=False)
     parser.add_argument("--csv", help="File name for CSV report output.")
     parser.add_argument("--config", help="JSON config file for preset queries.")
     args = parser.parse_args()
