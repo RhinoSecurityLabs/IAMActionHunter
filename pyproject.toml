@@ -2,7 +2,7 @@
 name = "IAMActionHunter"
 version = "0.1.0"
 description = "A query tool for AWS IAM policy statements."
-authors = ["Dave Yesland @daveysec with Rhino Security Labs"]
+authors = ["Dave Yesland with Rhino Security Labs"]
 readme = "README.md"
 packages = [{include = "IAMActionHunter"}]
 
