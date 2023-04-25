@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "IAMActionHunter"
+version = "0.1.0"
+description = "A query tool for AWS IAM policy statements."
+authors = ["Dave Yesland @daveysec with Rhino Security Labs"]
+readme = "README.md"
+packages = [{include = "IAMActionHunter"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+policyuniverse = "^1.5.0.20220613"
+boto3 = "^1.26.87"
+pandas = "^2.0.0"
+colorama = "^0.4.6"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.1.0"
+flake8 = "^6.0.0"
+setuptools-rust = "^1.5.2"
+mock = "^5.0.1"
+pytest = "^7.2.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120

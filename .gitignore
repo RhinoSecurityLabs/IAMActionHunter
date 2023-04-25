@@ -1,0 +1,63 @@
+# .gitignore
+
+# Ignore system and editor generated files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.swn
+*.log
+
+# Ignore compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Ignore temporary build artifacts
+*.tmp
+*.bak
+*.old
+
+# Ignore Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc.ghc
+.pytest_cache/
+
+
+# Ignore Node.js artifacts
+node_modules/
+npm-debug.log
+
+# Ignore build directories
+build/
+dist/
+
+# Ignore configuration files
+*.ini
+*.conf
+*.cfg
+*.local
+*.env
+.env.*
+
+# Ignore Visual Studio Code files
+.vscode/
+
+# Ignore other IDE and editor files
+*.sublime-project
+*.sublime-workspace
+*.idea/
+*.iml
+
+# ignore output
+actionhunter_output/
+
+old/
+debug.py
+out.csv

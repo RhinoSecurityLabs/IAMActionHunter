@@ -1,0 +1,22 @@
+[
+    {
+    "Description": "",
+    "Name": "DangerousIAMActions",
+    "ActionsNeeded": [
+        "iam:PutGroupPolicy",
+        "iam:PutRolePolicy",
+        "iam:PutUserPolicy",
+        "iam:AttachGroupPolicy",
+        "iam:AttachRolePolicy",
+        "iam:AttachUserPolicy",
+        "iam:CreatePolicyVersion",
+        "iam:SetDefaultPolicyVersion",
+        "iam:AddUserToGroup",
+        "iam:CreateLoginProfile",
+        "iam:UpdateLoginProfile",
+        "iam:CreateAccessKey",
+        "iam:CreateRole",
+        "sts:assumerole"
+    ],"AllOrNone":false
+  }
+]
