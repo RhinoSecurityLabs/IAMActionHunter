@@ -242,7 +242,7 @@ def main():
         if args.user:
             for user in args.user.split(","):
                 filtered_users += filter_files(user_files, f"{user}.json")
-        if filtered_roles or filtered_users:
+        if args.role or args.user:
             all_files = filtered_roles + filtered_users
 
         if not all_files:
