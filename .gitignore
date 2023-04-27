@@ -57,6 +57,7 @@ dist/
 
 # ignore output
 actionhunter_output/
+*.csv
 
 old/
 debug.py

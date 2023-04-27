@@ -264,7 +264,7 @@ def main():
         # Iterate through all files and process them
         for permission_file in all_files:
             principal_type = permission_file.split("/")[-2][:-1]
-            principal_name = permission_file.split("/")[-1].split(".")[0]
+            principal_name = permission_file.split("/")[-1].split(".json")[0]
 
             with open(permission_file, "r") as f:
                 permissions = json.load(f)
