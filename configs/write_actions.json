@@ -1,0 +1,29 @@
+[
+    {
+    "Description": "",
+    "Name": "WriteActions",
+    "ActionsNeeded": [
+        "*:Put*",
+        "*:Create*",
+        "*:Delete*",
+        "*:Modify*",
+        "*:Update*",
+        "*:Attach*",
+        "*:Detach*",
+        "*:Associate*",
+        "*:Disassociate*",
+        "*:Add*",
+        "*:Remove*",
+        "*:Set*",
+        "*:Enable*",
+        "*:Disable*",
+        "*:Reset*",
+        "*:Stop*",
+        "*:Terminate*",
+        "*:Reboot*",
+        "*:Start*"
+
+
+    ],"AllOrNone":false
+  }
+]
