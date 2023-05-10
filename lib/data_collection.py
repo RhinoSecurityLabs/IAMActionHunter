@@ -2,7 +2,7 @@ import boto3
 from botocore.config import Config
 import os
 import json
-import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from lib.statement_parser import enumerate_actions_resources_for_statements
 
@@ -127,12 +127,6 @@ def get_all_iam_policies(target_aws_profile):
         else:
             break
 
-    # Save policies for all roles
-    for role in roles:
-        role_threads = threading.Thread(target=get_role_policies, args=(role,))
-        role_threads.start()
-        # get_role_policies(role)
-
     # Paginate through all users
     users = []
     marker = None
@@ -147,15 +141,14 @@ def get_all_iam_policies(target_aws_profile):
         else:
             break
 
-    # Save policies for all users
-    for user in users:
-        user_threads = threading.Thread(target=get_user_policies, args=(user,))
-        user_threads.start()
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        # Save policies for all roles
+        for role in roles:
+            executor.submit(get_role_policies, role)
 
-    if users:
-        user_threads.join()
-    if roles:
-        role_threads.join()
+        # Save policies for all users
+        for user in users:
+            executor.submit(get_user_policies, user)
 
     print(f"Finished downloading IAM policies for account {account_id}.")
     print(f"Processing files for {account_id}...")
