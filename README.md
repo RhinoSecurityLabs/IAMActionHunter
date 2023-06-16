@@ -7,8 +7,8 @@ The tool can be utilized to search for potential privilege escalation opportunit
 ## Blue Team Use
 This tool also offers the ability to output and save query results in a CSV format, which is beneficial for security teams seeking a high-level overview of principal permissions and resources within an AWS account. For instance, you may want to identify users and roles with `iam:put*` permissions in an account. By executing a query and generating a CSV, you can easily review all users and roles with these permissions, along with the resources they have access to.
 
-# Usage
-This has also been implemented into https://github.com/RhinoSecurityLabs/pacu as a module, `iam__enum_action_query` if you prefer that.
+# Installation
+Much of this functionality has also been implemented into https://github.com/RhinoSecurityLabs/pacu as a module, `iam__enum_action_query` if you prefer that.
 
 Suggested Setup:
 ```
@@ -28,6 +28,7 @@ python IAMActionHunter.py --help
 python IAMActionHunter.py --collect --profile <some-aws-profile>
 ```
 
+# Usage
 Help:
 ```
 usage: IAMActionHunter.py [-h] [--profile PROFILE] [--account ACCOUNT] [--query QUERY] [--role ROLE] [--user USER]
