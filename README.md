@@ -15,23 +15,23 @@ Suggested Setup:
 git clone https://github.com/RhinoSecurityLabs/IAMActionHunter.git
 cd IAMActionHunter
 poetry install
-poetry run python IAMActionHunter.py --help
-poetry run python IAMActionHunter.py --collect --profile <some-aws-profile>
+iamactionhunter --help
+iamactionhunter --collect --profile <some-aws-profile>
 ```
 
-You can also install using:
+Or pip:
 ```
 git clone https://github.com/RhinoSecurityLabs/IAMActionHunter.git
 cd IAMActionHunter
-pip install -r requirements.txt
-python IAMActionHunter.py --help
-python IAMActionHunter.py --collect --profile <some-aws-profile>
+pip install .
+iamactionhunter --help
+iamactionhunter --collect --profile <some-aws-profile>
 ```
 
 # Usage
 Help:
 ```
-usage: IAMActionHunter.py [-h] [--profile PROFILE] [--account ACCOUNT] [--query QUERY] [--role ROLE] [--user USER]
+usage: iamactionhunter [-h] [--profile PROFILE] [--account ACCOUNT] [--query QUERY] [--role ROLE] [--user USER]
                           [--all-or-none] [--collect] [--list] [--csv CSV] [--config CONFIG]
 
 Collect all policies for all users/roles in an AWS account and then query the policies for permissions.
@@ -52,28 +52,28 @@ optional arguments:
 
 ## Examples
 First download all IAM info for users and roles:  
-`poetry run python IAMActionHunter.py --collect --profile my-aws-profile`  
+`iamactionhunter --collect --profile my-aws-profile`  
 
 List any account data has been collected for:  
-`poetry run python IAMActionHunter.py --list`  
+`iamactionhunter --list`  
 
 Then query something:  
-`poetry run python IAMActionHunter.py --account <account_number_of_profile_above> --query iam:create*`  
+`iamactionhunter --account <account_number_of_profile_above> --query iam:create*`  
 
 Then query more:  
-`poetry run python IAMActionHunter.py --account <account_number_of_profile_above> --query iam:create*,iam:put*`  
+`iamactionhunter --account <account_number_of_profile_above> --query iam:create*,iam:put*`  
 
 Query a particular role:  
-`poetry run python IAMActionHunter.py --account <account_number_of_profile_above> --role some_role --query iam:*`  
+`iamactionhunter --account <account_number_of_profile_above> --role some_role --query iam:*`  
 
 Query a particular user:  
-`poetry run python IAMActionHunter.py --account <account_number_of_profile_above> --user some_user --query iam:*`  
+`iamactionhunter --account <account_number_of_profile_above> --user some_user --query iam:*`  
 
 Output to a CSV:  
-`poetry run python IAMActionHunter.py --account <account_number_of_profile_above> --query iam:* --csv report.csv`  
+`iamactionhunter --account <account_number_of_profile_above> --query iam:* --csv report.csv`  
 
 Run a preset config:  
-`poetry run python IAMActionHunter.py --account <account_number_of_profile_above> --config dangerous_iam`
+`iamactionhunter --account <account_number_of_profile_above> --config dangerous_iam`
 
 Run a query which only shows the results if a user or role has all queried permissions:  
-`poetry run python IAMActionHunter.py --account <account_number_of_profile_above> --query s3:getobject,s3:listbucket --all-or-none`
+`iamactionhunter --account <account_number_of_profile_above> --query s3:getobject,s3:listbucket --all-or-none`

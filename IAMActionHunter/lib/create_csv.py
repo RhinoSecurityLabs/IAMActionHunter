@@ -14,7 +14,15 @@ def process_json_and_append_to_csv(json_data, csv_file, principal):
     # data = json.loads(json_data)
 
     # Create an empty DataFrame with the required columns
-    df = pd.DataFrame(columns=["Principal", "Allowed Action", "Denied Action", "Resource", "Conditions"])
+    df = pd.DataFrame(
+        columns=[
+            "Principal",
+            "Allowed Action",
+            "Denied Action",
+            "Resource",
+            "Conditions",
+        ]
+    )
 
     # Create a list to store DataFrame rows
     rows = []

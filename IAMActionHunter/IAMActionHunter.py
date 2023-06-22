@@ -7,9 +7,11 @@ import traceback
 
 from policyuniverse.statement import Statement
 
-from lib.data_collection import get_all_iam_policies
-from lib.create_csv import process_json_and_append_to_csv
-from lib.text_formatter import color
+from IAMActionHunter.lib.data_collection import get_all_iam_policies
+from IAMActionHunter.lib.create_csv import process_json_and_append_to_csv
+from IAMActionHunter.lib.text_formatter import color
+
+import IAMActionHunter.configs.all as configs
 
 
 def process_cli_args():
@@ -27,12 +29,21 @@ def process_cli_args():
         "--profile",
         help="The name of the AWS profile to use for authentication for user/role collection.",
     )
-    group.add_argument("--account", help="Account number to query.")
+    group.add_argument(
+        "--account",
+        help="Account number to query.",
+    )
     parser.add_argument(
         "--query", help="Permissions to query. A string like: s3:GetObject or s3:* or s3:GetObject,s3:PutObject"
     )
-    parser.add_argument("--role", help="Filter role to query.")
-    parser.add_argument("--user", help="Filter user to query.")
+    parser.add_argument(
+        "--role",
+        help="Filter role to query.",
+    )
+    parser.add_argument(
+        "--user",
+        help="Filter user to query.",
+    )
     parser.add_argument(
         "--all-or-none",
         help="Check if all queried actions are allowed, not just some.",
@@ -40,11 +51,25 @@ def process_cli_args():
         default=False,
     )
     group.add_argument(
-        "--collect", help="Collect user and role policies for the account.", action="store_true", default=False
+        "--collect",
+        help="Collect user and role policies for the account.",
+        action="store_true",
+        default=False,
     )
-    group.add_argument("--list", help="List accounts available to query.", action="store_true", default=False)
-    parser.add_argument("--csv", help="File name for CSV report output.")
-    parser.add_argument("--config", help="JSON config file for preset queries.")
+    group.add_argument(
+        "--list",
+        help="List accounts available to query.",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--csv",
+        help="File name for CSV report output.",
+    )
+    parser.add_argument(
+        "--config",
+        help="JSON config file for preset queries.",
+    )
     args = parser.parse_args()
 
     if args.collect and not args.profile:
@@ -250,16 +275,21 @@ def main():
             sys.exit(1)
 
         if args.config:
-            try:
-                with open(f"configs/{args.config}.json", "r") as f:
-                    query_config = json.loads(f.read())
-            except FileNotFoundError:
+            # Try to load config from builtin configs
+            if args.config in vars(configs):
+                query_config = vars(configs)[args.config]
+            else:
+                # Else try to load a config file
                 try:
-                    with open(args.config, "r") as f:
+                    with open(f"configs/{args.config}.json", "r") as f:
                         query_config = json.loads(f.read())
                 except FileNotFoundError:
-                    print(f"{args.config} does not exist. Please specify a valid config file or name")
-                    sys.exit(1)
+                    try:
+                        with open(args.config, "r") as f:
+                            query_config = json.loads(f.read())
+                    except FileNotFoundError:
+                        print(f"{args.config} does not exist. Please specify a valid config file or name")
+                        sys.exit(1)
 
         # Iterate through all files and process them
         for permission_file in all_files:
