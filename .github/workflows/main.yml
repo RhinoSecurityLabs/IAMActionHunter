@@ -1,7 +1,9 @@
 name: Run Black check and Test
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
@@ -25,6 +27,6 @@ jobs:
     - name: Check with Black
       run: |
         poetry run black --check .
-    - name: Run tests
+    - name: Run Python tests
       run: |
         poetry run pytest
