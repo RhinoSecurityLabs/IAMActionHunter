@@ -63,7 +63,12 @@ def enumerate_actions_resources_for_statements(list_of_statements):
 
     def new_action_dict():
         # returns a new action dictionary
-        return {"Deny_resources": set(), "Deny_conditions": [], "Allow_resources": set(), "Allow_conditions": []}
+        return {
+            "Deny_resources": set(),
+            "Deny_conditions": [],
+            "Allow_resources": set(),
+            "Allow_conditions": [],
+        }
 
     # actions_to_check = []
     for st in list_of_statements:

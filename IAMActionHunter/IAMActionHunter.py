@@ -29,12 +29,21 @@ def process_cli_args():
         "--profile",
         help="The name of the AWS profile to use for authentication for user/role collection.",
     )
-    group.add_argument("--account", help="Account number to query.")
+    group.add_argument(
+        "--account",
+        help="Account number to query.",
+    )
     parser.add_argument(
         "--query", help="Permissions to query. A string like: s3:GetObject or s3:* or s3:GetObject,s3:PutObject"
     )
-    parser.add_argument("--role", help="Filter role to query.")
-    parser.add_argument("--user", help="Filter user to query.")
+    parser.add_argument(
+        "--role",
+        help="Filter role to query.",
+    )
+    parser.add_argument(
+        "--user",
+        help="Filter user to query.",
+    )
     parser.add_argument(
         "--all-or-none",
         help="Check if all queried actions are allowed, not just some.",
@@ -42,11 +51,25 @@ def process_cli_args():
         default=False,
     )
     group.add_argument(
-        "--collect", help="Collect user and role policies for the account.", action="store_true", default=False
+        "--collect",
+        help="Collect user and role policies for the account.",
+        action="store_true",
+        default=False,
     )
-    group.add_argument("--list", help="List accounts available to query.", action="store_true", default=False)
-    parser.add_argument("--csv", help="File name for CSV report output.")
-    parser.add_argument("--config", help="JSON config file for preset queries.")
+    group.add_argument(
+        "--list",
+        help="List accounts available to query.",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--csv",
+        help="File name for CSV report output.",
+    )
+    parser.add_argument(
+        "--config",
+        help="JSON config file for preset queries.",
+    )
     args = parser.parse_args()
 
     if args.collect and not args.profile:
