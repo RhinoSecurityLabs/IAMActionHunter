@@ -7,7 +7,6 @@ on:
 
 jobs:
   build:
-    name: Install and Test
 
     runs-on: ubuntu-latest
     strategy:
