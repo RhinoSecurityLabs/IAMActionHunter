@@ -7,9 +7,11 @@ import traceback
 
 from policyuniverse.statement import Statement
 
-from lib.data_collection import get_all_iam_policies
-from lib.create_csv import process_json_and_append_to_csv
-from lib.text_formatter import color
+from IAMActionHunter.lib.data_collection import get_all_iam_policies
+from IAMActionHunter.lib.create_csv import process_json_and_append_to_csv
+from IAMActionHunter.lib.text_formatter import color
+
+import IAMActionHunter.configs.all as configs
 
 
 def process_cli_args():
@@ -250,16 +252,21 @@ def main():
             sys.exit(1)
 
         if args.config:
-            try:
-                with open(f"configs/{args.config}.json", "r") as f:
-                    query_config = json.loads(f.read())
-            except FileNotFoundError:
+            # Try to load config from builtin configs
+            if args.config in vars(configs):
+                query_config = vars(configs)[args.config]
+            else:
+                # Else try to load a config file
                 try:
-                    with open(args.config, "r") as f:
+                    with open(f"configs/{args.config}.json", "r") as f:
                         query_config = json.loads(f.read())
                 except FileNotFoundError:
-                    print(f"{args.config} does not exist. Please specify a valid config file or name")
-                    sys.exit(1)
+                    try:
+                        with open(args.config, "r") as f:
+                            query_config = json.loads(f.read())
+                    except FileNotFoundError:
+                        print(f"{args.config} does not exist. Please specify a valid config file or name")
+                        sys.exit(1)
 
         # Iterate through all files and process them
         for permission_file in all_files:
