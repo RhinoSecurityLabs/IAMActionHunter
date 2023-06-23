@@ -4,7 +4,7 @@ import os
 import json
 from concurrent.futures import ThreadPoolExecutor
 
-from lib.statement_parser import enumerate_actions_resources_for_statements
+from IAMActionHunter.lib.statement_parser import enumerate_actions_resources_for_statements
 
 
 def get_all_iam_policies(target_aws_profile):
