@@ -10,7 +10,13 @@ This tool also offers the ability to output and save query results in a CSV form
 # Installation
 Much of this functionality has also been implemented into https://github.com/RhinoSecurityLabs/pacu as a module, `iam__enum_action_query` if you prefer that.
 
-Suggested Setup:
+Suggested:
+```
+pip3 install iamactionhunter
+```
+
+
+Clone and use Poetry:
 ```
 git clone https://github.com/RhinoSecurityLabs/IAMActionHunter.git
 cd IAMActionHunter
@@ -19,7 +25,7 @@ iamactionhunter --help
 iamactionhunter --collect --profile <some-aws-profile>
 ```
 
-Or pip:
+Clone and use Pip:
 ```
 git clone https://github.com/RhinoSecurityLabs/IAMActionHunter.git
 cd IAMActionHunter
