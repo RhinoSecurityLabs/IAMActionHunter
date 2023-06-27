@@ -70,7 +70,6 @@ def enumerate_actions_resources_for_statements(list_of_statements):
             "Allow_conditions": [],
         }
 
-    # actions_to_check = []
     for st in list_of_statements:
         try:
             statement = ExtendedStatement(st)
@@ -78,12 +77,6 @@ def enumerate_actions_resources_for_statements(list_of_statements):
             print(e)
             print("[!] Error parsing statement")
             continue
-
-        # Expand the actions to check using policyuniverse
-        # actions_to_check = query_actions  # Statement({"Action": query_actions}).actions_expanded
-
-        # Get all the query actions which are in the statement
-        # found_actions = [action for action in actions_to_check if action in statement.actions_expanded]
 
         # iterate through the found query actions
         for action in statement.actions_expanded:
@@ -102,13 +95,7 @@ def enumerate_actions_resources_for_statements(list_of_statements):
                 # Add a condition in this case since it means access is denied
                 # but does not mean any other access is allowed
                 # TODO maybe a better way to do this but for now here we are.
-                action_dict["Deny_conditions"].append({"IfResourcesNotIn": statement.notresources})
-
-            if statement.notresources and statement.effect == "Allow":
-                # Add a condition in this case since it means access is allowed
-                # to everything except the notresources
-                # TODO maybe a better way to do this but for now here we are.
-                action_dict["Allow_conditions"].append({"IfResourcesNotIn": statement.notresources})
+                action_dict["Allow_conditions"].append({"StringEquals": {"aws:ResourceArn": statement.notresources}})
 
             # Update the Allow or Deny resources
             updated_resources = action_dict[f"{effect_key}_resources"].union(statement.resources)
@@ -120,13 +107,5 @@ def enumerate_actions_resources_for_statements(list_of_statements):
 
             # Update the results for the actions
             results[action] = action_dict
-
-    # if all_or_none_actions and not all(
-    #     results.get(action, {"Allow_resources": {}})["Allow_resources"]
-    #     for action in actions_to_check
-    # ):
-    #     # If all_or_none_actions is True, check if all the query actions are in the results
-    #     # If not, return an empty dictionary
-    #     results = {}
 
     return convert_sets_to_lists(results)
