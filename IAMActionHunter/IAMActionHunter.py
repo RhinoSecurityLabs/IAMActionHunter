@@ -169,6 +169,7 @@ def process_config_file_query(permissions_json, config, principal_type_name, cli
     """
     query_results = {}
     query = config["ActionsNeeded"]
+    all_or_none = config["AllOrNone"]
 
     # Expand the actions for the query actions to a list
     query = Statement({"Action": query}).actions_expanded
@@ -176,6 +177,13 @@ def process_config_file_query(permissions_json, config, principal_type_name, cli
     for action in query:
         if permissions_json.get(action):
             query_results.update({action: permissions_json.get(action)})
+
+    # If the AllOrNone is true, check if all actions are allowed
+    if all_or_none:
+        if all(item in query_results for item in query):
+            pass
+        else:
+            query_results = {}
 
     # Write CSV file if specified
     if cli_args.csv:
