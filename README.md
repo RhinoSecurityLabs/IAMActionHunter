@@ -1,6 +1,9 @@
 # Description
 IAMActionHunter is an IAM policy statement parser and query tool aims to simplify the process of collecting and understanding permission policy statements for users and roles in AWS Identity and Access Management (IAM). Although its functionality is straightforward, this tool was developed in response to the need for an efficient solution during day-to-day AWS penetration testing.
 
+### Blog Post
+https://rhinosecuritylabs.com/aws/iamactionhunter-aws-iam-permissions/
+
 ## Offensive Use
 The tool can be utilized to search for potential privilege escalation opportunities in AWS accounts by querying various AWS IAM actions that might be exploited. While other tools perform scans to identify privilege escalation risks, this tool enables a more manual approach, allowing users to investigate permissions and quickly review the roles, users, and resources they apply to for targeted analysis.
 
