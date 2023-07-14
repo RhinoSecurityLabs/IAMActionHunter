@@ -11,13 +11,13 @@ The tool can be utilized to search for potential privilege escalation opportunit
 This tool also offers the ability to output and save query results in a CSV format, which is beneficial for security teams seeking a high-level overview of principal permissions and resources within an AWS account. For instance, you may want to identify users and roles with `iam:put*` permissions in an account. By executing a query and generating a CSV, you can easily review all users and roles with these permissions, along with the resources they have access to.
 
 # Installation
-Much of this functionality has also been implemented into https://github.com/RhinoSecurityLabs/pacu as a module, `iam__enum_action_query` if you prefer that.
 
 Suggested:
 ```
 pip3 install iamactionhunter
 ```
 
+Much of this functionality has also been implemented into https://github.com/RhinoSecurityLabs/pacu as a module, `iam__enum_action_query` if you prefer that.
 
 Clone and use Poetry:
 ```
