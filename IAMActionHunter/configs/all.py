@@ -223,4 +223,12 @@ privescs = [
         ],
         "AllOrNone": True,
     },
+    {
+        "Description": "",
+        "Name": "ModifyEC2UserData",
+        "ActionsNeeded": [
+            "ec2:ModifyInstanceAttribute",
+        ],
+        "AllOrNone": True,
+    },
 ]
