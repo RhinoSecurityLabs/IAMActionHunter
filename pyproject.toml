@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "IAMActionHunter"
-version = "1.0.2"
+version = "1.0.3"
 description = "A query tool for AWS IAM policy statements."
 authors = ["Dave Yesland with Rhino Security Labs"]
 readme = "README.md"
