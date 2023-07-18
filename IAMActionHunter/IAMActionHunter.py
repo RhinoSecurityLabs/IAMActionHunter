@@ -284,20 +284,26 @@ def main():
 
         if args.config:
             # Try to load config from builtin configs
-            if args.config in vars(configs):
-                query_config = vars(configs)[args.config]
+            builtin_configs = vars(configs)
+            if args.config in builtin_configs:
+                query_config = builtin_configs[args.config]
             else:
                 # Else try to load a config file
                 try:
-                    with open(f"configs/{args.config}.json", "r") as f:
+                    with open(f"{args.config}", "r") as f:
                         query_config = json.loads(f.read())
                 except FileNotFoundError:
-                    try:
-                        with open(args.config, "r") as f:
-                            query_config = json.loads(f.read())
-                    except FileNotFoundError:
-                        print(f"{args.config} does not exist. Please specify a valid config file or name")
-                        sys.exit(1)
+                    print(f"{args.config} does not exist. Please specify a valid config file or name. ")
+                    print("Builtin config options are:")
+                    print()
+                    for config in builtin_configs:
+                        if not config.startswith("__"):
+                            print(config)
+                    print()
+                    sys.exit(1)
+                except json.decoder.JSONDecodeError:
+                    print(f"{args.config} is not a valid config JSON file")
+                    sys.exit(1)
 
         # Iterate through all files and process them
         for permission_file in all_files:
