@@ -86,3 +86,47 @@ Run a preset config:
 
 Run a query which only shows the results if a user or role has all queried permissions:  
 `iamactionhunter --account <account_number_of_profile_above> --query s3:getobject,s3:listbucket --all-or-none`
+
+## Configs
+Builtin config options are:
+```
+dangerous_iam
+write_actions
+privescs
+```
+`iamactionhunter --account <account_number_of_profile> --config dangerous_iam`
+
+## Creating Custom Configs
+A config file is a JSON file that specifies some specific permissions you want to look for. Here is an example file which searches for write actions in CodeBuild.
+```
+[
+	{
+		"Description": "These are all actions which may allow some kind of write privilege in CodeBuild.",
+		"Name": "CodeBuildWriteActions",
+		"ActionsNeeded": [
+			"codebuild:Put*",
+			"codebuild:Create*",
+			"codebuild:Delete*",
+			"codebuild:Modify*",
+			"codebuild:Update*",
+			"codebuild:Attach*",
+			"codebuild:Detach*",
+			"codebuild:Associate*",
+			"codebuild:Disassociate*",
+			"codebuild:Add*",
+			"codebuild:Remove*",
+			"codebuild:Set*",
+			"codebuild:Enable*",
+			"codebuild:Disable*",
+			"codebuild:Reset*",
+			"codebuild:Stop*",
+			"codebuild:Terminate*",
+			"codebuild:Reboot*",
+			"codebuild:Start*"
+		],
+		"AllOrNone": false
+	}
+]
+```
+You could then run the config by simply specifying the file name in the `--config` argument.  
+`iamactionhunter --account <account_number_of_profile> --config write_code_build.json`
