@@ -23,6 +23,7 @@ Clone and use Poetry:
 ```
 git clone https://github.com/RhinoSecurityLabs/IAMActionHunter.git
 cd IAMActionHunter
+# (potentially necessary: poetry env use python3.9)
 poetry install
 iamactionhunter --help
 iamactionhunter --collect --profile <some-aws-profile>
