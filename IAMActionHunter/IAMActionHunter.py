@@ -73,7 +73,7 @@ def process_cli_args():
     args = parser.parse_args()
 
     if args.collect and not args.profile:
-        parser.error("--collect requires --profile")
+        print("[*] No profile specified. Using default AWS credentials/environment.")
     if args.account and not (args.query or args.config):
         parser.error("--account requires --query or --config")
     return parser.parse_args()
