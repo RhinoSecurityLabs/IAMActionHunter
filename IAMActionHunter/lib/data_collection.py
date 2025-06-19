@@ -1,5 +1,6 @@
 import boto3
 from botocore.config import Config
+from botocore.exceptions import NoCredentialsError
 import os
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -94,8 +95,10 @@ def get_all_iam_policies(target_aws_profile):
         with open(output_file, "w") as f:
             json.dump(user_output, f)
 
-    # Use the specified profile for authentication
-    session = boto3.Session(profile_name=target_aws_profile)
+    if target_aws_profile:
+        session = boto3.Session(profile_name=target_aws_profile)
+    else:
+        session = boto3.Session()
 
     # Create IAM client
     config = Config(retries=dict(max_attempts=10))
@@ -103,7 +106,11 @@ def get_all_iam_policies(target_aws_profile):
 
     # Get AWS account number
     sts = session.client("sts")
-    account_id = sts.get_caller_identity().get("Account")
+    try:
+        account_id = sts.get_caller_identity().get("Account")
+    except NoCredentialsError:
+        print("No valid AWS credentials found. Please configure your AWS credentials.")
+        return
 
     print(f"Downloading IAM policies for account {account_id}...")
 
