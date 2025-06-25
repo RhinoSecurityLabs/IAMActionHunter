@@ -82,10 +82,9 @@ def get_all_iam_policies(target_aws_profile):
             # Inline policies on the group
             inline_resp = iam.list_group_policies(GroupName=group_name)
             for policy_name in inline_resp["PolicyNames"]:
-                statement = iam.get_group_policy(
-                    GroupName=group_name,
-                    PolicyName=policy_name
-                )["PolicyDocument"]["Statement"]
+                statement = iam.get_group_policy(GroupName=group_name, PolicyName=policy_name)["PolicyDocument"][
+                    "Statement"
+                ]
                 statements += ensure_list(statement)
 
             response = iam.list_attached_group_policies(GroupName=group_name)
