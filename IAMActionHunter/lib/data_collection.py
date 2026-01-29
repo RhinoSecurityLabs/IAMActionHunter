@@ -123,8 +123,12 @@ def get_all_iam_policies(target_aws_profile):
     print(f"Downloading IAM policies for account {account_id}...")
 
     # Create the output directory using the account number
-    roles_output_dir = f"actionhunter_output/{account_id}/roles"
-    users_output_dir = f"actionhunter_output/{account_id}/users"
+    from pathlib import Path
+    data_dir = Path.home() / ".iamactionhunter"
+    data_dir.mkdir(exist_ok=True)
+
+    roles_output_dir = f"{data_dir}/{account_id}/roles"
+    users_output_dir = f"{data_dir}/{account_id}/users"
     os.makedirs(roles_output_dir, exist_ok=True)
     os.makedirs(users_output_dir, exist_ok=True)
 

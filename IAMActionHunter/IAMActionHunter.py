@@ -13,6 +13,9 @@ from IAMActionHunter.lib.text_formatter import color
 
 import IAMActionHunter.configs.all as configs
 
+from pathlib import Path
+data_dir = Path.home() / ".iamactionhunter"
+data_dir.mkdir(exist_ok=True)
 
 def process_cli_args():
     """
@@ -38,7 +41,7 @@ def process_cli_args():
     )
     parser.add_argument(
         "--role",
-        help="Filter role to query.",
+        help="Filter role to query. Can be a comma-separated string or a file with one role per line.",
     )
     parser.add_argument(
         "--user",
@@ -241,12 +244,11 @@ def main():
     # If the list flag is set, list all accounts in the output directory
     # and exit
     if args.list:
-        for account in os.listdir("actionhunter_output"):
+        for account in os.listdir(data_dir):
             print(account)
         sys.exit(0)
 
-    output_directory = f"actionhunter_output/{args.account}"
-
+    output_directory = f"{data_dir}/{args.account}"
     if args.collect:
         get_all_iam_policies(args.profile)
 
@@ -270,7 +272,15 @@ def main():
         filtered_roles = []
         filtered_users = []
         if args.role:
-            for role in args.role.split(","):
+            role_path = Path(args.role)
+            if role_path.is_file():
+                # Read roles from file (one per line)
+                roles = [line.strip() for line in role_path.read_text().splitlines() if line.strip()]
+            else:
+                # Treat as comma-separated string
+                roles = [r.strip() for r in args.role.split(",")]
+            
+            for role in roles:
                 filtered_roles += filter_files(role_files, f"{role}.json")
         if args.user:
             for user in args.user.split(","):
