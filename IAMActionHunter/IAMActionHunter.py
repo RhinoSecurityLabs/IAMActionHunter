@@ -48,6 +48,10 @@ def process_cli_args():
         help="Filter user to query.",
     )
     parser.add_argument(
+        "--filter-principal",
+        help="Exclude permissions that already exist for this principal (user or role name).",
+    )
+    parser.add_argument(
         "--all-or-none",
         help="Check if all queried actions are allowed, not just some.",
         action="store_true",
@@ -94,7 +98,7 @@ def ensure_list(item):
         return [item]
 
 
-def process_cli_query(permissions_json, principal_type_name, cli_args):
+def process_cli_query(permissions_json, principal_type_name, cli_args, filter_permissions=None):
     """
     Iterate through all files in the roles directory
     and get the resources for the specified action
@@ -114,6 +118,11 @@ def process_cli_query(permissions_json, principal_type_name, cli_args):
         for action in query:
             if permissions_json.get(action):
                 query_results.update({action: permissions_json.get(action)})
+
+        # Filter out actions that exist in the filter principal
+        if filter_permissions:
+            query_results = {action: data for action, data in query_results.items()
+                            if action not in filter_permissions}
 
         # If the all-or-none flag is set, check if all actions are allowed
         if cli_args.all_or_none:
@@ -161,7 +170,7 @@ def process_cli_query(permissions_json, principal_type_name, cli_args):
         print()
 
 
-def process_config_file_query(permissions_json, config, principal_type_name, cli_args):
+def process_config_file_query(permissions_json, config, principal_type_name, cli_args, filter_permissions=None):
     """
     Iterate through all statements for a user/role policy
     and get the resources for the specified action specified in the config file
@@ -180,6 +189,11 @@ def process_config_file_query(permissions_json, config, principal_type_name, cli
     for action in query:
         if permissions_json.get(action):
             query_results.update({action: permissions_json.get(action)})
+
+    # Filter out actions that exist in the filter principal
+    if filter_permissions:
+        query_results = {action: data for action, data in query_results.items()
+                        if action not in filter_permissions}
 
     # If the AllOrNone is true, check if all actions are allowed
     if all_or_none:
@@ -315,6 +329,22 @@ def main():
                     print(f"{args.config} is not a valid config JSON file")
                     sys.exit(1)
 
+        # Load filter principal permissions if specified
+        filter_permissions = None
+        if args.filter_principal:
+            filter_file = None
+            for dir_type in ['roles', 'users']:
+                potential_path = f"{output_directory}/{dir_type}/{args.filter_principal}.json"
+                if os.path.exists(potential_path):
+                    filter_file = potential_path
+                    break
+            if filter_file:
+                with open(filter_file, "r") as f:
+                    filter_permissions = json.load(f)
+            else:
+                print(f"[-] Filter principal '{args.filter_principal}' not found in {output_directory}")
+                sys.exit(1)
+
         # Iterate through all files and process them
         for permission_file in all_files:
             principal_type = permission_file.split("/")[-2][:-1]
@@ -325,9 +355,9 @@ def main():
 
             if args.config:
                 for config in query_config:
-                    process_config_file_query(permissions, config, f"{principal_type}:{principal_name}", args)
+                    process_config_file_query(permissions, config, f"{principal_type}:{principal_name}", args, filter_permissions)
             else:
-                process_cli_query(permissions, f"{principal_type}:{principal_name}", args)
+                process_cli_query(permissions, f"{principal_type}:{principal_name}", args, filter_permissions)
 
 
 if __name__ == "__main__":
