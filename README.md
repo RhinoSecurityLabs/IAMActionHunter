@@ -1,133 +1,341 @@
-# Description
-IAMActionHunter is an IAM policy statement parser and query tool aims to simplify the process of collecting and understanding permission policy statements for users and roles in AWS Identity and Access Management (IAM). Although its functionality is straightforward, this tool was developed in response to the need for an efficient solution during day-to-day AWS penetration testing.
+# IAMActionHunter
+
+IAMActionHunter is an IAM policy statement parser and query tool that simplifies collecting and understanding permission policies for users and roles in AWS Identity and Access Management (IAM). It also provides privilege escalation analysis and **Neo4j graph visualization** of attack paths, similar to BloodHound but for AWS IAM.
 
 ### Blog Post
+
 https://rhinosecuritylabs.com/aws/iamactionhunter-aws-iam-permissions/
 
+## Features
+
+- **Collect** IAM policies for all users and roles in an AWS account
+- **Query** permissions with wildcard support
+- **Analyze** privilege escalation paths via AssumeRole chains
+- **Visualize** attack paths in Neo4j with BloodHound-style graphs
+- **Filter** results by specific users or roles
+- **Export** results to CSV
+
 ## Offensive Use
-The tool can be utilized to search for potential privilege escalation opportunities in AWS accounts by querying various AWS IAM actions that might be exploited. While other tools perform scans to identify privilege escalation risks, this tool enables a more manual approach, allowing users to investigate permissions and quickly review the roles, users, and resources they apply to for targeted analysis.
+
+Search for potential privilege escalation opportunities by querying AWS IAM actions that might be exploited. The graph visualization shows progression paths from a compromised principal to higher privileges.
 
 ## Blue Team Use
-This tool also offers the ability to output and save query results in a CSV format, which is beneficial for security teams seeking a high-level overview of principal permissions and resources within an AWS account. For instance, you may want to identify users and roles with `iam:put*` permissions in an account. By executing a query and generating a CSV, you can easily review all users and roles with these permissions, along with the resources they have access to.
+
+Generate CSV reports of principal permissions and resources. Use the graph feature to understand the blast radius of a compromised credential.
 
 # Installation
 
-Suggested:
-```
+```bash
 pip3 install iamactionhunter
 ```
 
-Much of this functionality has also been implemented into https://github.com/RhinoSecurityLabs/pacu as a module, `iam__enum_action_query` if you prefer that.
+Or clone and install with Poetry:
 
-Clone and use Poetry:
-```
+```bash
 git clone https://github.com/RhinoSecurityLabs/IAMActionHunter.git
 cd IAMActionHunter
-# (potentially necessary: poetry env use python3.9)
 poetry install
-iamactionhunter --help
-iamactionhunter --collect --profile <some-aws-profile>
 ```
 
-Clone and use Pip:
-```
-git clone https://github.com/RhinoSecurityLabs/IAMActionHunter.git
-cd IAMActionHunter
-pip install .
-iamactionhunter --help
-iamactionhunter --collect --profile <some-aws-profile>
+For graph visualization, also install the Neo4j driver:
+
+```bash
+pip install neo4j
+# or
+poetry add neo4j
 ```
 
 # Usage
-Help:
-```
-usage: iamactionhunter [-h] [--profile PROFILE] [--account ACCOUNT] [--query QUERY] [--role ROLE] [--user USER]
-                          [--all-or-none] [--collect] [--list] [--csv CSV] [--config CONFIG]
 
-Collect all policies for all users/roles in an AWS account and then query the policies for permissions.
+IAMActionHunter uses subcommands for different operations:
+
+```
+usage: iah [-h] {list,collect,query,privesc,graph} ...
+
+IAMActionHunter - AWS IAM policy analysis and privilege escalation detection
+
+positional arguments:
+  {list,collect,query,privesc,graph}
+                        Available commands
+    list                List available accounts
+    collect             Collect and analyze IAM policies from AWS
+    query               Query permissions for users/roles
+    privesc             Analyze privilege escalation paths via AssumeRole
+    graph               Generate Neo4j graph for visualization
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --profile PROFILE  The name of the AWS profile to use for authentication for user/role collection.
-  --account ACCOUNT  Account number to query.
-  --query QUERY      Permissions to query. A string like: s3:GetObject or s3:* or s3:GetObject,s3:PutObject
-  --role ROLE        Filter role to query.
-  --user USER        Filter user to query.
-  --all-or-none      Check if all queried actions are allowed, not just some.
-  --collect          Collect user and role policies for the account.
-  --list             List accounts available to query.
-  --csv CSV          File name for CSV report output.
-  --config CONFIG    JSON config file for preset queries.
+  -h, --help            show this help message and exit
 ```
 
-## Examples
-First download all IAM info for users and roles:  
-`iamactionhunter --collect --profile my-aws-profile`  
+## Collect
 
-List any account data has been collected for:  
-`iamactionhunter --list`  
+Download IAM data for an AWS account:
 
-Then query something:  
-`iamactionhunter --account <account_number_of_profile_above> --query iam:create*`  
+```bash
+iah collect --profile my-aws-profile
+```
 
-Then query more:  
-`iamactionhunter --account <account_number_of_profile_above> --query iam:create*,iam:put*`  
+Re-analyze existing data without making API calls:
 
-Query a particular role:  
-`iamactionhunter --account <account_number_of_profile_above> --role some_role --query iam:*`  
+```bash
+iah collect --account 123456789012
+```
 
-Query a particular user:  
-`iamactionhunter --account <account_number_of_profile_above> --user some_user --query iam:*`  
+## List
 
-Output to a CSV:  
-`iamactionhunter --account <account_number_of_profile_above> --query iam:* --csv report.csv`  
+List accounts that have been collected:
 
-Run a preset config:  
-`iamactionhunter --account <account_number_of_profile_above> --config dangerous_iam`
+```bash
+iah list
+```
 
-Run a query which only shows the results if a user or role has all queried permissions:  
-`iamactionhunter --account <account_number_of_profile_above> --query s3:getobject,s3:listbucket --all-or-none`
+## Query
+
+Query permissions across users and roles:
+
+```bash
+# Basic query
+iah query --account 123456789012 --query iam:create*
+
+# Multiple actions
+iah query --account 123456789012 --query iam:create*,iam:put*
+
+# Filter by role
+iah query --account 123456789012 --role AdminRole --query iam:*
+
+# Filter by user
+iah query --account 123456789012 --user alice --query s3:*
+
+# Only show results if ALL queried actions are allowed
+iah query --account 123456789012 --query s3:GetObject,s3:PutObject --all-or-none
+
+# Export to CSV
+iah query --account 123456789012 --query iam:* --csv report.csv
+
+# Use a preset config
+iah query --account 123456789012 --config dangerous_iam
+
+# Exclude permissions that another principal also has
+iah query --account 123456789012 --query iam:* --filter-principal BaselineRole
+```
+
+## Privesc
+
+Analyze privilege escalation paths:
+
+```bash
+iah privesc --account 123456789012
+
+# Filter to specific roles
+iah privesc --account 123456789012 --role DevRole,TestRole
+
+# Filter to specific users  
+iah privesc --account 123456789012 --user alice,bob
+```
+
+## Graph
+
+Generate a Neo4j graph for BloodHound-style visualization of privilege escalation paths.
+
+### Prerequisites
+
+Start a Neo4j container:
+
+```bash
+docker run -d --name neo4j -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/password neo4j
+```
+
+### Basic Usage
+
+Generate a full graph of all relationships:
+
+```bash
+iah graph --account 123456789012 --neo4j-password password --clear
+```
+
+### BFS Traversal from Starting Point
+
+Generate a graph showing only progression paths from a specific principal. This uses BFS traversal and only draws the first edge to reach each node (showing how an attacker would progress, not all possible relationships):
+
+```bash
+# Start from a specific role
+iah graph --account 123456789012 --neo4j-password password --clear \
+  --start MyCompromisedRole
+
+# Control traversal depth (default: 5)
+iah graph --account 123456789012 --neo4j-password password --clear \
+  --start MyCompromisedRole --depth 10
+```
+
+### Filtering
+
+```bash
+# Only include specific roles
+iah graph --account 123456789012 --neo4j-password password --clear \
+  --role AdminRole,DevRole,TestRole
+
+# Only include specific users
+iah graph --account 123456789012 --neo4j-password password --clear \
+  --user alice,bob
+
+# Include AWS service-linked roles (excluded by default)
+iah graph --account 123456789012 --neo4j-password password --clear \
+  --include-service-roles
+```
+
+### Graph Options
+
+```
+--account           Account ID to graph (required)
+--neo4j-uri         Neo4j connection URI (default: bolt://localhost:7687)
+--neo4j-user        Neo4j username (default: neo4j)
+--neo4j-password    Neo4j password (default: neo4j)
+--clear             Clear existing graph data before import
+--include-service-roles  Include AWS service-linked roles
+--role              Filter by role (comma-separated or file path)
+--user              Filter by user (comma-separated or file path)
+--start             Starting principal for BFS traversal
+--depth             Max traversal depth when using --start (default: 5)
+```
+
+### Neo4j Cypher Queries
+
+Open Neo4j Browser at http://localhost:7474 and try these queries:
+
+```cypher
+-- View the entire graph
+MATCH p=()-[]->() RETURN p
+
+-- Limit results
+MATCH p=()-[]->() RETURN p LIMIT 100
+
+-- All paths from a specific role
+MATCH p=(r:Role {name: 'MyRole'})-[*1..5]->() RETURN p
+
+-- Paths with 2+ hops (chains)
+MATCH p=(r:Role {name: 'MyRole'})-[*2..]->() RETURN p
+
+-- Paths with exactly 2 hops
+MATCH p=(r:Role {name: 'MyRole'})-[*2]->() RETURN p
+
+-- Specific privesc method
+MATCH p=(r:Role {name: 'MyRole'})-[:CreateEC2WithExistingIP]->(dest) RETURN p
+
+-- Any privesc (single hop, exclude AssumeRole)
+MATCH p=(r:Role {name: 'MyRole'})-[pe]->(dest)
+WHERE type(pe) <> 'AssumeRole'
+RETURN p
+
+-- Exclude conditional edges (more reliable paths)
+MATCH p=(a)-[r]->(b)
+WHERE NOT type(r) ENDS WITH '-conditional'
+RETURN p LIMIT 50
+
+-- Exclude wildcard targets (ANY_USER, ANY_ROLE)
+MATCH p=(a)-[r]->(b)
+WHERE NOT b.arn = '*'
+RETURN p LIMIT 50
+
+-- Find all paths to a high-value role
+MATCH p=()-[*1..4]->(r:Role {name: 'AdminRole'}) RETURN p
+
+-- Node counts by type
+MATCH (n) RETURN labels(n), count(*)
+
+-- Edge counts by type
+MATCH ()-[r]->() RETURN type(r), count(*)
+```
+
+### Graph Data Model
+
+**Nodes:**
+- `User` - IAM users
+- `Role` - IAM roles  
+- `Group` - IAM groups
+- `Resource` - AWS resources (policies, Lambda functions, etc.)
+- `ANY_USER` - Wildcard node representing any user
+- `ANY_ROLE` - Wildcard node representing any role
+
+**Edges:**
+- `AssumeRole` - Principal can assume the target role
+- `AssumeRole-conditional` - AssumeRole with conditions in trust policy
+- `MemberOf` - User is member of group
+- `CreateAccessKey` - Can create access key for target user
+- `CreateLoginProfile` - Can create console login for target user
+- `CreateEC2WithExistingIP` - Can launch EC2 with target role's instance profile
+- `PassExistingRoleToNewLambdaThenInvoke` - Can pass role to Lambda and invoke
+- `AttachRolePolicy` - Can attach policies to target role
+- `PutRolePolicy` - Can put inline policy on target role
+- ... and other privilege escalation methods
+
+Edges ending in `-conditional` indicate the trust policy has conditions that must be met.
 
 ## Configs
-Builtin config options are:
+
+Built-in config options:
+
 ```
 dangerous_iam
 write_actions
 privescs
 ```
-`iamactionhunter --account <account_number_of_profile> --config dangerous_iam`
 
-## Creating Custom Configs
-A config file is a JSON file that specifies some specific permissions you want to look for. Here is an example file which searches for write actions in CodeBuild.
+```bash
+iah query --account 123456789012 --config dangerous_iam
 ```
+
+### Custom Configs
+
+Create a JSON file specifying permissions to search for:
+
+```json
 [
-	{
-		"Description": "These are all actions which may allow some kind of write privilege in CodeBuild.",
-		"Name": "CodeBuildWriteActions",
-		"ActionsNeeded": [
-			"codebuild:Put*",
-			"codebuild:Create*",
-			"codebuild:Delete*",
-			"codebuild:Modify*",
-			"codebuild:Update*",
-			"codebuild:Attach*",
-			"codebuild:Detach*",
-			"codebuild:Associate*",
-			"codebuild:Disassociate*",
-			"codebuild:Add*",
-			"codebuild:Remove*",
-			"codebuild:Set*",
-			"codebuild:Enable*",
-			"codebuild:Disable*",
-			"codebuild:Reset*",
-			"codebuild:Stop*",
-			"codebuild:Terminate*",
-			"codebuild:Reboot*",
-			"codebuild:Start*"
-		],
-		"AllOrNone": false
-	}
+  {
+    "Description": "CodeBuild write actions",
+    "Name": "CodeBuildWriteActions",
+    "ActionsNeeded": [
+      "codebuild:Create*",
+      "codebuild:Update*",
+      "codebuild:Delete*",
+      "codebuild:Start*"
+    ],
+    "AllOrNone": false
+  }
 ]
 ```
-You could then run the config by simply specifying the file name in the `--config` argument.  
-`iamactionhunter --account <account_number_of_profile> --config write_code_build.json`
+
+Run with:
+
+```bash
+iah query --account 123456789012 --config my_config.json
+```
+
+## Data Storage
+
+Collected data is stored in `~/.iamactionhunter/<account_id>/`:
+
+```
+~/.iamactionhunter/
+└── 123456789012/
+    ├── raw/
+    │   ├── principals/
+    │   │   ├── users/
+    │   │   └── roles/
+    │   └── policies/
+    │       └── trust/
+    ├── users/
+    │   └── <user>.json
+    └── roles/
+        └── <role>.json
+```
+
+## License
+
+Apache-2.0
+
+## Credits
+
+Developed by [Rhino Security Labs](https://rhinosecuritylabs.com)
+
+Graph visualization inspired by [BloodHound](https://github.com/BloodHoundAD/BloodHound)

@@ -1,3 +1,33 @@
+pmapper = [
+    {
+        "Description": "This is a list of IAM actions that are needed to run pmapper.",
+        "Name": "Pmapper",
+        "ActionsNeeded": [
+            "iam:List*",
+            "iam:Get*",
+            "organizations:List*",
+            "organizations:Describe*",
+            "s3:ListAllMyBuckets",
+            "s3:ListBucket",
+            "s3:GetBucketPolicy",
+            "kms:ListKeys",
+            "kms:GetKeyPolicy",
+            "sns:ListTopics",
+            "sns:GetTopicAttributes",
+            "sqs:ListQueues",
+            "sqs:GetQueueAttributes",
+            "secretsmanager:ListSecrets",
+            "secretsmanager:GetResourcePolicy",
+            "cloudformation:DescribeStacks",
+            "lambda:ListFunctions",
+            "codebuild:ListProjects",
+            "codebuild:BatchGetProjects",
+            "autoscaling:DescribeLaunchConfigurations"
+        ],
+        "AllOrNone": True,
+    }
+]
+
 dangerous_iam = [
     {
         "Description": "This is a list of IAM actions that can be used to escalate privileges or move laterally.",

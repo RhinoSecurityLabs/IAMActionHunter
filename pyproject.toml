@@ -7,11 +7,13 @@ readme = "README.md"
 packages = [{include = "IAMActionHunter"},{include="lib", from="IAMActionHunter"},{include="configs", from="IAMActionHunter"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.10,<4.0"
 policyuniverse = "^1.5.0.20220613"
 boto3 = "^1.26.87"
 pandas = "^2.0.0"
 colorama = "^0.4.6"
+policy-sentry = "^0.15.1"
+neo4j = "^6.1.0"
 
 [tool.poetry.group.dev]
 optional = true

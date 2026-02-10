@@ -4,170 +4,284 @@ from botocore.exceptions import NoCredentialsError
 import os
 import json
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from IAMActionHunter.lib.statement_parser import enumerate_actions_resources_for_statements
 
+data_dir = Path.home() / ".iamactionhunter"
+data_dir.mkdir(exist_ok=True)
 
-def get_all_iam_policies(target_aws_profile):
+
+def safe_filename(name):
+    """Convert a string to a safe filename by replacing problematic characters."""
+    return name.replace("/", "_").replace(":", "_")
+
+
+def get_all_iam_policies(target_aws_profile, account_id):
     """
-    Get all IAM policies for roles and users for the specified AWS profile
+    Get all IAM policies for roles and users for the specified AWS profile.
+    - If raw policies don't exist, fetch from AWS and store them
+    - Transform raw policies from filesystem into expanded permissions
     Args: target_aws_profile (str): AWS profile to use for authentication
     Returns: None
     """
 
     def ensure_list(item):
-        """
-        Ensure that the item is a list
-        Args: item (object): item to check
-        returns: list: item as a list
-        """
         if isinstance(item, list):
             return item
         else:
             return [item]
 
+    def save_policy(policy_type, principal_type, principal_name, policy_name, policy_document):
+        """Save a policy document to the appropriate location."""
+        if policy_type == "inline":
+            policy_dir = raw_dir / "policies" / "inline" / principal_type
+            policy_dir.mkdir(parents=True, exist_ok=True)
+            filename = f"{principal_name}_{policy_name}.json"
+        else:  # managed
+            policy_dir = raw_dir / "policies" / "managed"
+            policy_dir.mkdir(parents=True, exist_ok=True)
+            filename = f"{safe_filename(policy_name)}.json"
+        
+        policy_file = policy_dir / filename
+        if not policy_file.exists():
+            with open(policy_file, "w") as f:
+                json.dump(policy_document, f, indent=2)
+
     def get_role_policies(role):
         role_name = role["RoleName"]
-        statements = []
+        manifest = {"inline": [], "managed": [], "trust": None}
 
-        # Get statetments for inline policies attached to the role
+        # Store trust policy
+        if "AssumeRolePolicyDocument" in role:
+            trust_dir = raw_dir / "policies" / "trust"
+            trust_dir.mkdir(parents=True, exist_ok=True)
+            trust_file = trust_dir / f"{role_name}.json"
+            with open(trust_file, "w") as f:
+                json.dump(role["AssumeRolePolicyDocument"], f, indent=2)
+            manifest["trust"] = role_name
+
+        # Get inline policies
         response = iam.list_role_policies(RoleName=role_name)
         for policy_name in response["PolicyNames"]:
-            statement = iam.get_role_policy(RoleName=role_name, PolicyName=policy_name)["PolicyDocument"]["Statement"]
-            statements += ensure_list(statement)
+            policy_doc = iam.get_role_policy(RoleName=role_name, PolicyName=policy_name)["PolicyDocument"]
+            save_policy("inline", "roles", role_name, policy_name, policy_doc)
+            manifest["inline"].append(policy_name)
 
-        # Get statements for managed policies attached to the role
+        # Get managed policies
         response = iam.list_attached_role_policies(RoleName=role_name)
         for policy in response["AttachedPolicies"]:
             policy_arn = policy["PolicyArn"]
-            policy_name = policy_arn.split(":")[-1]
             version_id = iam.get_policy(PolicyArn=policy_arn)["Policy"]["DefaultVersionId"]
-            statement = iam.get_policy_version(PolicyArn=policy_arn, VersionId=version_id)["PolicyVersion"]["Document"][
-                "Statement"
-            ]
-            statements += ensure_list(statement)
+            policy_doc = iam.get_policy_version(PolicyArn=policy_arn, VersionId=version_id)["PolicyVersion"]["Document"]
+            save_policy("managed", "roles", role_name, policy_arn, policy_doc)
+            manifest["managed"].append(policy_arn)
 
-        role_output = enumerate_actions_resources_for_statements(statements)
-
-        # Save policies to file
-        output_file = os.path.join(roles_output_dir, f"{role_name}.json")
-        with open(output_file, "w") as f:
-            json.dump(role_output, f)
+        # Save role manifest
+        manifest_file = raw_dir / "principals" / "roles" / f"{role_name}.json"
+        manifest_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(manifest_file, "w") as f:
+            json.dump(manifest, f, indent=2)
 
     def get_user_policies(user):
         user_name = user["UserName"]
-        statements = []
+        manifest = {"inline": [], "managed": [], "groups": []}
 
-        # Get stetaments for inline policies attached to the user
+        # Get inline policies
         response = iam.list_user_policies(UserName=user_name)
         for policy_name in response["PolicyNames"]:
-            statement = iam.get_user_policy(UserName=user_name, PolicyName=policy_name)["PolicyDocument"]["Statement"]
-            statements += ensure_list(statement)
+            policy_doc = iam.get_user_policy(UserName=user_name, PolicyName=policy_name)["PolicyDocument"]
+            save_policy("inline", "users", user_name, policy_name, policy_doc)
+            manifest["inline"].append(policy_name)
 
-        # Get  statements for managed policies attached to the user
+        # Get managed policies
         response = iam.list_attached_user_policies(UserName=user_name)
         for policy in response["AttachedPolicies"]:
             policy_arn = policy["PolicyArn"]
-            policy_name = policy_arn.split(":")[-1]
             version_id = iam.get_policy(PolicyArn=policy_arn)["Policy"]["DefaultVersionId"]
-            statement = iam.get_policy_version(PolicyArn=policy_arn, VersionId=version_id)["PolicyVersion"]["Document"][
-                "Statement"
-            ]
-            statements += ensure_list(statement)
+            policy_doc = iam.get_policy_version(PolicyArn=policy_arn, VersionId=version_id)["PolicyVersion"]["Document"]
+            save_policy("managed", "users", user_name, policy_arn, policy_doc)
+            manifest["managed"].append(policy_arn)
 
-        # Get statements for managed policies attached to the user's groups
-        response = iam.list_groups_for_user(UserName=user_name)
-        for group in response["Groups"]:
+        # Get groups
+        groups_response = iam.list_groups_for_user(UserName=user_name)
+        for group in groups_response["Groups"]:
             group_name = group["GroupName"]
-            # Inline policies on the group
-            inline_resp = iam.list_group_policies(GroupName=group_name)
-            for policy_name in inline_resp["PolicyNames"]:
-                statement = iam.get_group_policy(GroupName=group_name, PolicyName=policy_name)["PolicyDocument"][
-                    "Statement"
-                ]
-                statements += ensure_list(statement)
+            manifest["groups"].append(group_name)
+            
+            # Get group policies (stored separately)
+            get_group_policies(group_name)
 
-            response = iam.list_attached_group_policies(GroupName=group_name)
-            for policy in response["AttachedPolicies"]:
-                policy_arn = policy["PolicyArn"]
-                policy_name = policy_arn.split(":")[-1]
-                version_id = iam.get_policy(PolicyArn=policy_arn)["Policy"]["DefaultVersionId"]
-                statement = iam.get_policy_version(PolicyArn=policy_arn, VersionId=version_id)["PolicyVersion"][
-                    "Document"
-                ]["Statement"]
-                statements += ensure_list(statement)
-        user_output = enumerate_actions_resources_for_statements(statements)
+        # Save user manifest
+        manifest_file = raw_dir / "principals" / "users" / f"{user_name}.json"
+        manifest_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(manifest_file, "w") as f:
+            json.dump(manifest, f, indent=2)
 
-        # Save policies to file
-        output_file = os.path.join(users_output_dir, f"{user_name}.json")
-        with open(output_file, "w") as f:
-            json.dump(user_output, f)
+    def get_group_policies(group_name):
+        """Get and store policies for a group."""
+        manifest_file = raw_dir / "principals" / "groups" / f"{group_name}.json"
+        if manifest_file.exists():
+            return  # Already processed
+        
+        manifest = {"inline": [], "managed": []}
 
-    if target_aws_profile:
-        session = boto3.Session(profile_name=target_aws_profile)
+        # Get inline policies
+        response = iam.list_group_policies(GroupName=group_name)
+        for policy_name in response["PolicyNames"]:
+            policy_doc = iam.get_group_policy(GroupName=group_name, PolicyName=policy_name)["PolicyDocument"]
+            save_policy("inline", "groups", group_name, policy_name, policy_doc)
+            manifest["inline"].append(policy_name)
+
+        # Get managed policies
+        response = iam.list_attached_group_policies(GroupName=group_name)
+        for policy in response["AttachedPolicies"]:
+            policy_arn = policy["PolicyArn"]
+            version_id = iam.get_policy(PolicyArn=policy_arn)["Policy"]["DefaultVersionId"]
+            policy_doc = iam.get_policy_version(PolicyArn=policy_arn, VersionId=version_id)["PolicyVersion"]["Document"]
+            save_policy("managed", "groups", group_name, policy_arn, policy_doc)
+            manifest["managed"].append(policy_arn)
+
+        # Save group manifest
+        manifest_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(manifest_file, "w") as f:
+            json.dump(manifest, f, indent=2)
+
+
+    account_dir = data_dir / account_id
+    raw_dir = account_dir / "raw"
+    roles_output_dir = account_dir / "roles"
+    users_output_dir = account_dir / "users"
+
+    # Check if raw policies already exist
+    raw_exists = (raw_dir / "principals").exists()
+
+    if raw_exists:
+        print(f"Raw policies already exist for account {account_id}. Skipping API collection.")
     else:
-        session = boto3.Session()
+        print(f"Collecting IAM policies for account {account_id}...")
+        if target_aws_profile:
+            session = boto3.Session(profile_name=target_aws_profile)
+        else:
+            session = boto3.Session()
 
-    # Create IAM client
-    config = Config(retries=dict(max_attempts=10))
-    iam = session.client("iam", config=config)
+        config = Config(retries=dict(max_attempts=10))
+        iam = session.client("iam", config=config)
 
-    # Get AWS account number
-    sts = session.client("sts")
-    try:
-        account_id = sts.get_caller_identity().get("Account")
-    except NoCredentialsError:
-        print("No valid AWS credentials found. Please configure your AWS credentials.")
-        return
+        sts = session.client("sts")
+        try:
+            account_id = sts.get_caller_identity().get("Account")
+        except NoCredentialsError:
+            print("No valid AWS credentials found. Please configure your AWS credentials.")
+            return
 
-    print(f"Downloading IAM policies for account {account_id}...")
+        # Paginate through all roles
+        roles = []
+        marker = None
+        while True:
+            if marker:
+                response = iam.list_roles(Marker=marker)
+            else:
+                response = iam.list_roles()
+            roles.extend(response["Roles"])
+            if response["IsTruncated"]:
+                marker = response["Marker"]
+            else:
+                break
 
-    # Create the output directory using the account number
-    from pathlib import Path
-    data_dir = Path.home() / ".iamactionhunter"
-    data_dir.mkdir(exist_ok=True)
+        # Paginate through all users
+        users = []
+        marker = None
+        while True:
+            if marker:
+                response = iam.list_users(Marker=marker)
+            else:
+                response = iam.list_users()
+            users.extend(response["Users"])
+            if response["IsTruncated"]:
+                marker = response["Marker"]
+            else:
+                break
 
-    roles_output_dir = f"{data_dir}/{account_id}/roles"
-    users_output_dir = f"{data_dir}/{account_id}/users"
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            for role in roles:
+                executor.submit(get_role_policies, role)
+            for user in users:
+                executor.submit(get_user_policies, user)
+
+        print(f"Finished collecting IAM policies for account {account_id}.")
+
+    # Transform raw policies into expanded permissions
+    print(f"Processing policies for account {account_id}...")
+
     os.makedirs(roles_output_dir, exist_ok=True)
     os.makedirs(users_output_dir, exist_ok=True)
 
-    # Paginate through all roles
-    roles = []
-    marker = None
-    while True:
-        if marker:
-            response = iam.list_roles(Marker=marker)
-        else:
-            response = iam.list_roles()
-        roles.extend(response["Roles"])
-        if response["IsTruncated"]:
-            marker = response["Marker"]
-        else:
-            break
+    def load_policy(policy_type, principal_type, principal_name, policy_name):
+        """Load a policy document from the appropriate location."""
+        if policy_type == "inline":
+            policy_file = raw_dir / "policies" / "inline" / principal_type / f"{principal_name}_{policy_name}.json"
+        else:  # managed
+            policy_file = raw_dir / "policies" / "managed" / f"{safe_filename(policy_name)}.json"
+        
+        if policy_file.exists():
+            with open(policy_file, "r") as f:
+                return json.load(f)
+        return None
 
-    # Paginate through all users
-    users = []
-    marker = None
-    while True:
-        if marker:
-            response = iam.list_users(Marker=marker)
-        else:
-            response = iam.list_users()
-        users.extend(response["Users"])
-        if response["IsTruncated"]:
-            marker = response["Marker"]
-        else:
-            break
+    def collect_statements_for_principal(principal_type, principal_name):
+        """Collect all statements for a principal from their manifest."""
+        manifest_file = raw_dir / "principals" / principal_type / f"{principal_name}.json"
+        if not manifest_file.exists():
+            return []
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        # Save policies for all roles
-        for role in roles:
-            executor.submit(get_role_policies, role)
+        with open(manifest_file, "r") as f:
+            manifest = json.load(f)
 
-        # Save policies for all users
-        for user in users:
-            executor.submit(get_user_policies, user)
+        statements = []
 
-    print(f"Finished downloading IAM policies for account {account_id}.")
-    print(f"Processing files for {account_id}...")
+        # Load inline policies
+        for policy_name in manifest.get("inline", []):
+            policy_doc = load_policy("inline", principal_type, principal_name, policy_name)
+            if policy_doc and "Statement" in policy_doc:
+                statements += ensure_list(policy_doc["Statement"])
+
+        # Load managed policies
+        for policy_arn in manifest.get("managed", []):
+            policy_doc = load_policy("managed", principal_type, principal_name, policy_arn)
+            if policy_doc and "Statement" in policy_doc:
+                statements += ensure_list(policy_doc["Statement"])
+
+        # For users, also load group policies
+        if principal_type == "users":
+            for group_name in manifest.get("groups", []):
+                group_statements = collect_statements_for_principal("groups", group_name)
+                statements += group_statements
+
+        return statements
+
+    # Process roles
+    roles_principals_dir = raw_dir / "principals" / "roles"
+    if roles_principals_dir.exists():
+        for manifest_file in roles_principals_dir.iterdir():
+            if manifest_file.suffix == ".json":
+                role_name = manifest_file.stem
+                statements = collect_statements_for_principal("roles", role_name)
+                permissions = enumerate_actions_resources_for_statements(statements)
+                output_file = roles_output_dir / f"{role_name}.json"
+                with open(output_file, "w") as f:
+                    json.dump(permissions, f)
+
+    # Process users
+    users_principals_dir = raw_dir / "principals" / "users"
+    if users_principals_dir.exists():
+        for manifest_file in users_principals_dir.iterdir():
+            if manifest_file.suffix == ".json":
+                user_name = manifest_file.stem
+                statements = collect_statements_for_principal("users", user_name)
+                permissions = enumerate_actions_resources_for_statements(statements)
+                output_file = users_output_dir / f"{user_name}.json"
+                with open(output_file, "w") as f:
+                    json.dump(permissions, f)
+
+    print(f"Finished processing policies for account {account_id}.")
